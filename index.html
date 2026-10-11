@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Instant browser-based Kubernetes YAML validator and auto-corrector. Detect syntax errors, deprecated APIs, selector mismatches, and security misconfigurations with 1-click remediations.">
+  <meta name="keywords" content="kubernetes, k8s, yaml validator, yaml corrector, kubernetes schema, kubectl, devops">
+  <meta name="author" content="KubeFix">
+  <title>KubeFix — Kubernetes YAML Validator & Auto-Corrector</title>
+  
+  <!-- Favicon SVG Data URI -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23326ce5'%3E%3Cpath d='M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.2L19.5 8 12 11.8 4.5 8 12 4.2zM4.5 9.7l6.5 3.3v7.3l-6.5-3.6V9.7zm8 10.6v-7.3l6.5-3.3v7l-6.5 3.6z'/%3E%3C/svg%3E">
+
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Top App Navigation & Toolbar -->
+  <header class="app-header">
+    <div class="header-container">
+      
+      <!-- Brand & Title -->
+      <a href="#" class="brand-wrapper" id="brandHomeLink">
+        <svg class="k8s-logo-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2L2.5 7.5v9L12 22l9.5-5.5v-9L12 2zm0 2.3l7.5 4.3v7.8L12 19.7l-7.5-4.3V8.6L12 4.3zm0 3.2L6.8 10.5v3l5.2 3 5.2-3v-3L12 7.5zm0 1.9l3.5 2-3.5 2-3.5-2 3.5-2z"/>
+        </svg>
+        <div class="brand-text">
+          <h1>KubeFix <span class="brand-badge">v1.0 Pro</span></h1>
+          <p class="brand-subtitle">Kubernetes YAML Validator & 1-Click Corrector</p>
+        </div>
+      </a>
+
+      <!-- Toolbar Actions -->
+      <div class="header-actions">
+        
+        <!-- Preset Examples Selector -->
+        <div class="preset-selector-wrapper">
+          <label for="presetSelect">Preset:</label>
+          <select id="presetSelect" class="preset-select" title="Load sample manifest">
+            <option value="indentationErrors">Indentation & Mapping Errors (Fixable)</option>
+            <option value="deprecatedApis">Deprecated APIs & Legacy Ingress (Fixable)</option>
+            <option value="tabsAndSyntax">Tab Characters & Plaintext Secret (Fixable)</option>
+            <option value="selectorMismatch">Selector Mismatch & Missing MatchLabels (Fixable)</option>
+            <option value="validStack">Production Microservice (Valid A+)</option>
+          </select>
+        </div>
+
+        <!-- Auto-Fix All Button -->
+        <button id="btnAutoFixAll" class="btn btn-accent-fix" title="Automatically resolve all fixable issues (Ctrl+Shift+K)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Auto-Fix All
+        </button>
+
+        <!-- Validate Button -->
+        <button id="btnValidate" class="btn btn-primary" title="Analyze YAML manifest (Ctrl+Enter)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Validate
+        </button>
+
+        <!-- Prettify Button -->
+        <button id="btnPrettify" class="btn btn-secondary" title="Reformat YAML with clean 2-space indentation (Ctrl+Shift+F)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="4 7 4 4 20 4 20 7"></polyline>
+            <line x1="9" y1="20" x2="15" y2="20"></line>
+            <line x1="12" y1="4" x2="12" y2="20"></line>
+          </svg>
+          Prettify
+        </button>
+
+        <!-- File Upload Trigger -->
+        <button id="btnUpload" class="btn-icon" title="Upload YAML File">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+        </button>
+        <input type="file" id="fileUploadInput" accept=".yaml,.yml,.txt" style="display:none;" />
+
+        <!-- Download Button -->
+        <button id="btnDownload" class="btn-icon" title="Download YAML file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+          </svg>
+        </button>
+
+        <!-- Copy Button -->
+        <button id="btnCopy" class="btn-icon" title="Copy manifest to clipboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+        </button>
+
+        <!-- Clear Button -->
+        <button id="btnClear" class="btn-icon" title="Clear Editor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+
+        <!-- Theme Toggle Button -->
+        <button id="btnThemeToggle" class="btn-icon" title="Toggle Dark/Light Mode">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </button>
+
+        <!-- Help / Shortcuts Button -->
+        <button id="btnHelpModal" class="btn-icon" title="Keyboard Shortcuts & Help">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Health & Metrics Banner -->
+  <section class="metrics-banner" aria-label="Manifest Health Summary">
+    <div class="metrics-card">
+      
+      <!-- Health Dial & Status -->
+      <div class="score-cluster">
+        <div id="healthDial" class="health-dial" style="--score-pct: 100;">
+          <span id="healthDialScore" class="health-dial-score">100%</span>
+        </div>
+        <div class="score-details">
+          <span id="statusBadge" class="status-badge valid">Valid Manifest</span>
+          <span id="scoreLabel" class="score-label">Grade: A+ • 1 resource</span>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Counters -->
+      <div class="stats-row">
+        <div class="stat-item">
+          <span id="statTotalResources" class="stat-value">0</span>
+          <span class="stat-label">Resources</span>
+        </div>
+        <div class="stat-item">
+          <span id="statErrors" class="stat-value errors">0</span>
+          <span class="stat-label">Critical Errors</span>
+        </div>
+        <div class="stat-item">
+          <span id="statWarnings" class="stat-value warnings">0</span>
+          <span class="stat-label">Warnings</span>
+        </div>
+        <div class="stat-item">
+          <span id="statInfos" class="stat-value infos">0</span>
+          <span class="stat-label">Best Practices</span>
+        </div>
+        <div class="stat-item">
+          <span id="statFixable" class="stat-value fixable">0</span>
+          <span class="stat-label">Auto-Fixable</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Main Split-Screen Workspace -->
+  <main class="workspace">
+    
+    <!-- Left Pane: YAML Source Editor -->
+    <section class="pane" id="editorPane">
+      <div class="pane-header">
+        <div class="pane-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span>Kubernetes Manifest Source (YAML)</span>
+        </div>
+        <div class="pane-controls">
+          <span style="font-size:0.75rem;color:var(--text-muted);">Multi-document supported (---)</span>
+        </div>
+      </div>
+
+      <div class="editor-wrapper">
+        <div id="lineNumbers" class="line-numbers"></div>
+        <textarea id="codeEditor" class="code-textarea" spellcheck="false" placeholder="Paste or drag and drop your Kubernetes YAML manifests here..."></textarea>
+        
+        <!-- Drag & Drop Overlay -->
+        <div id="dropOverlay" class="drop-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <p>Drop your Kubernetes YAML file here</p>
+        </div>
+      </div>
+
+      <div class="pane-footer">
+        <span id="cursorPosition">Ln 1, Col 1</span>
+        <div>
+          <span id="docCharCount" style="margin-right:12px;">0 chars</span>
+          <span id="docLineCount">0 lines</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Pane: Inspector, Issues, Diff & Visualizer -->
+    <section class="pane" id="inspectorPane">
+      <div class="pane-header">
+        <nav class="tabs-nav" aria-label="Inspection tabs">
+          <button class="tab-btn active" data-tab="issues" id="tabBtnIssues">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Issues & Fixes
+            <span id="tabBadgeIssues" class="tab-badge">0</span>
+          </button>
+          
+          <button class="tab-btn" data-tab="diff" id="tabBtnDiff">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            Diff & Preview
+          </button>
+
+          <button class="tab-btn" data-tab="resources" id="tabBtnResources">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            Resources
+            <span id="tabBadgeResources" class="tab-badge">0</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Tab 1: Issues List View -->
+      <div class="tab-content active" id="tab-issues">
+        <div class="issues-filter-bar">
+          <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all">All</button>
+            <button class="filter-pill pill-error" data-filter="error">Errors</button>
+            <button class="filter-pill pill-warning" data-filter="warning">Warnings</button>
+            <button class="filter-pill" data-filter="info">Best Practice</button>
+            <button class="filter-pill" data-filter="fixable">Auto-Fixable</button>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-muted);">Click line numbers to jump to code</span>
+        </div>
+
+        <div id="issuesList" class="issues-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <!-- Tab 2: Diff & Corrected YAML View -->
+      <div class="tab-content" id="tab-diff">
+        <div class="diff-toolbar">
+          <span style="font-size:0.8rem;color:var(--text-secondary);font-weight:600;">
+            Proposed Remediations Diff
+          </span>
+          <div class="diff-actions">
+            <button id="btnCopyDiff" class="btn btn-secondary" style="font-size:0.75rem;padding:0.35rem 0.65rem;">
+              Copy Corrected
+            </button>
+            <button id="btnApplyDiff" class="btn btn-accent-fix" style="font-size:0.75rem;padding:0.35rem 0.65rem;">
+              Apply to Editor
+            </button>
+          </div>
+        </div>
+
+        <div id="diffContainer" class="diff-container">
+          <!-- Dynamically populated diff -->
+        </div>
+      </div>
+
+      <!-- Tab 3: Resource Visualizer View -->
+      <div class="tab-content" id="tab-resources">
+        <div id="resourcesGrid" class="resources-grid">
+          <!-- Dynamically populated resource cards -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Help & Shortcuts Modal -->
+  <div id="helpModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h2 id="helpModalTitle">KubeFix Help & Shortcuts</h2>
+        <button id="btnCloseModal" class="btn-icon" title="Close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <h3 style="font-size:0.9rem;margin-bottom:0.6rem;color:var(--cyan-primary);">Keyboard Shortcuts</h3>
+          <div class="shortcut-row">
+            <span>Validate Manifest</span>
+            <kbd class="shortcut-key">Ctrl + Enter / Cmd + Enter</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Auto-Fix All Issues</span>
+            <kbd class="shortcut-key">Ctrl + Shift + K / Cmd + Shift + K</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Prettify & Reformat YAML</span>
+            <kbd class="shortcut-key">Ctrl + Shift + F / Cmd + Shift + F</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Indent with 2 spaces</span>
+            <kbd class="shortcut-key">Tab</kbd>
+          </div>
+          <div class="shortcut-row">
+            <span>Close Modal</span>
+            <kbd class="shortcut-key">Escape</kbd>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size:0.9rem;margin-bottom:0.6rem;color:var(--emerald-success);">What KubeFix Validates & Fixes</h3>
+          <ul style="padding-left:1.2rem;font-size:0.82rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
+            <li><strong>Syntax & Tabs:</strong> Replaces forbidden tab characters, fixes broken indentations and formatting.</li>
+            <li><strong>Deprecated APIs:</strong> Automatically updates legacy <codo>extensions/v1beta1</code>, <code>apps/v1beta1</code>, <code>networking.k8s.io/v1beta1</code> to modern v1 APIs.</li>
+            <li><strong>Workload Selectors:</strong> Injects or synchronizes <code>spec.selector.matchLabels</code> matching pod template labels.</li>
+            <li><strong>Ingress v1 Migration:</strong> Upgrades old <code>serviceName/servicePort</code> backend structure to modern <code>backend.service.name</code> and injects <code>pathType: Prefix</code>.</li>
+            <li><strong>Security Hardening:</strong> Recommends removing <code>privileged: true</code>, setting <code>runAsNonRoot: true</code>, and applying baseline seccomp profiles.</li>
+            <li><strong>Resource Quotas:</strong> Auto-injects standard baseline CPU and memory requests & limits to avoid noisy neighbors.</li>
+            <li><strong>Secrets:</strong> Detects unencoded plaintext strings in Secret data and Base64 encodes them.</li>
+            <li><strong>Privacy Guarantee:</strong> All processing is done 100% client-side in your web browser. No manifests or credentials ever leave your machine.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <p>KubeFix • Client-Side Kubernetes YAML Validator & Corrector • Secure & Private</p>
+  </footer>
+
+  <!-- Vendor YAML Library (Local offline copy with CDN fallback) -->
+  <script src="vendor/js-yaml.min.js"></script>
+  <script>
+    if (typeof jsyaml === 'undefined') {
+      const cdnScript = document.createElement('script');
+      cdnScript.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+      document.head.appendChild(cdnScript);
+    }
+  </script>
+
+  <!-- Application Logic Modules -->
+  <script src="js/k8s-schemas.js"></script>
+  <script src="js/validator.js"></script>
+  <script src="js/corrector.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+services:
+  yaml-validator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: kubefix-validator:latest
+    container_name: kubefix-yaml-validator
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s

@@ -8,8 +8,44 @@
   <meta name="author" content="KubeFix">
   <title>KubeFix — Kubernetes YAML Validator & Auto-Corrector</title>
   
+  <!-- Auto-normalize trailing slash for stage paths (e.g. /prod -> /prod/) -->
+  <script>
+    if (window.location.pathname.length > 1 && !window.location.pathname.endsWith('/') && !window.location.pathname.includes('.')) {
+      window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
+    }
+  </script>
+  <base href="./">
+
   <!-- Favicon SVG Data URI -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23326ce5'%3E%3Cpath d='M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.2L19.5 8 12 11.8 4.5 8 12 4.2zM4.5 9.7l6.5 3.3v7.3l-6.5-3.6V9.7zm8 10.6v-7.3l6.5-3.3v7l-6.5 3.6z'/%3E%3C/svg%3E">
+
+  <!-- Google Fonts Preconnect & Stylesheet -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Critical Baseline CSS -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #070a13;
+      color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .k8s-logo-icon {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      fill: #326ce5;
+    }
+    .btn svg, .btn-icon svg {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      max-height: 16px;
+    }
+  </style>
 
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
@@ -22,7 +58,7 @@
       
       <!-- Brand & Title -->
       <a href="#" class="brand-wrapper" id="brandHomeLink">
-        <svg class="k8s-logo-icon" viewBox="0 0 24 24" fill="currentColor">
+        <svg class="k8s-logo-icon" viewBox="0 0 24 24" fill="currentColor" width="38" height="38" style="width:38px;height:38px;min-width:38px;">
           <path d="M12 2L2.5 7.5v9L12 22l9.5-5.5v-9L12 2zm0 2.3l7.5 4.3v7.8L12 19.7l-7.5-4.3V8.6L12 4.3zm0 3.2L6.8 10.5v3l5.2 3 5.2-3v-3L12 7.5zm0 1.9l3.5 2-3.5 2-3.5-2 3.5-2z"/>
         </svg>
         <div class="brand-text">

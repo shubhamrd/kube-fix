@@ -65,7 +65,7 @@ docker build -t kubefix-validator:latest .
 
 #### Run Container
 ```bash
-docker run -d -p 8080:80 --name kubefix-yaml-validator kubefix-validator:latest
+docker run -d -p 8080:8080 --name kubefix-yaml-validator kubefix-validator:latest
 ```
 Access the application at `http://localhost:8080`.
 
@@ -77,6 +77,75 @@ To stop the container:
 ```bash
 docker compose down
 ```
+
+---
+
+### 5. AWS Lambda Deployment (Serverless Container)
+
+KubeFix is optimized to run as a serverless container on **AWS Lambda** using the [AWS Lambda Web Adapter](https://github.com/aws/aws-lambda-web-adapter). The container runs Nginx on port `8080`, with PID and temporary cache directories relocated to `/tmp` to support Lambda's read-only root filesystem.
+
+#### Step 1: Create an Amazon ECR Repository
+```bash
+aws ecr create-repository \
+  --repository-name kubefix-validator \
+  --image-scanning-configuration scanOnPush=true \
+  --region <your-region>
+```
+
+#### Step 2: Authenticate Docker to Amazon ECR
+```bash
+aws ecr get-login-password --region <your-region> | \
+  docker login --username AWS --password-stdin <aws-account-id>.dkr.ecr.<your-region>.amazonaws.com
+```
+
+#### Step 3: Build & Push the Image
+Build for `linux/amd64` (or `linux/arm64` if using AWS Graviton2):
+```bash
+# Tag variable
+ECR_URI="<aws-account-id>.dkr.ecr.<your-region>.amazonaws.com/kubefix-validator:latest"
+
+# Build and tag
+docker buildx build --platform linux/amd64 -t $ECR_URI --push .
+```
+
+#### Step 4: Create the Lambda Function
+```bash
+aws lambda create-function \
+  --function-name kubefix-validator \
+  --package-type Image \
+  --code ImageUri=$ECR_URI \
+  --role arn:aws:iam::<aws-account-id>:role/<lambda-execution-role> \
+  --timeout 15 \
+  --memory-size 256 \
+  --region <your-region>
+```
+
+> [!TIP]
+> **Resource Sizing**: 256 MB RAM and a 15-second timeout provide optimal performance and negligible cost. Cold starts are typically sub-second.
+
+#### Step 5: Enable Lambda Function URL (Public Web Access)
+The simplest and most cost-effective way to expose KubeFix on AWS is via a **Function URL**:
+
+```bash
+# Create Function URL with public access
+aws lambda create-function-url-config \
+  --function-name kubefix-validator \
+  --auth-type NONE \
+  --region <your-region>
+
+# Allow public invocations
+aws lambda add-permission \
+  --function-name kubefix-validator \
+  --statement-id FunctionURLAllowPublicAccess \
+  --action lambda:InvokeFunctionUrl \
+  --principal "*" \
+  --function-url-auth-type NONE \
+  --region <your-region>
+```
+
+The output will contain your function's public URL (e.g., `https://<unique-id>.lambda-url.<region>.on.aws/`). Open this URL in any browser to use KubeFix!
+
+*(Optional: If routing through Amazon API Gateway REST API with a stage prefix such as `/prod`, set the environment variable `AWS_LWA_REMOVE_BASE_PATH=/prod` in your Lambda function configuration).*
 
 ---
 
